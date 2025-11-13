@@ -89,7 +89,6 @@ jobs:
 
       - name: Build for ${{ matrix.os }}-${{ matrix.arch }}
         run: make build
-        working-directory: docker-language-server
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
