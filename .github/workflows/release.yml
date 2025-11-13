@@ -10,10 +10,6 @@ on:
         description: 'Docker extension version to build (e.g., v1.1.4). If empty, the latest upstream version will be used after checking for updates.'
         required: false
         default: ''
-      language_server_version:
-        description: 'Docker language server version to build (e.g., v1.1.4). If empty, the latest upstream version will be used after checking for updates.'
-        required: false
-        default: ''
       release_version:
         description: 'The version to use in release (e.g., v1.1.4-1). If empty, the release workflow will not be triggered.'
         required: false
@@ -33,32 +29,20 @@ jobs:
       - name: Determine version and whether to build
         id: version_logic
         run: |
-          if [ -n "${{ github.event.inputs.extension_version }}" ] || [ -n "${{ github.event.inputs.language_server_version }}" ]; then
+          if [ -n "${{ github.event.inputs.extension_version }}" ]; then
             echo "Building specified versions"
             echo "should_build=true" >> $GITHUB_OUTPUT
-            
-            # Use provided versions or fetch latest if not provided
-            if [ -n "${{ github.event.inputs.language_server_version }}" ]; then
-              LS_VERSION="${{ github.event.inputs.language_server_version }}"
-            else
-              LS_VERSION=$(curl -s https://api.github.com/repos/docker/docker-language-server/releases/latest | jq -r .tag_name)
-            fi
-            
-            if [ -n "${{ github.event.inputs.extension_version }}" ]; then
-              EXT_VERSION="${{ github.event.inputs.extension_version }}"
-            else
-              EXT_VERSION=$(curl -s https://api.github.com/repos/docker/vscode-extension/releases/latest | jq -r .tag_name)
-            fi
-            
+            EXT_VERSION="${{ github.event.inputs.extension_version }}"
+            LS_VERSION=$(curl -s "https://raw.githubusercontent.com/docker/vscode-extension/refs/tags/$EXT_VERSION/build/downloader.mjs" | sed -n "s/.*const version = '\(.*\)';/\1/p")
             echo "docker_language_server_version=$LS_VERSION" >> $GITHUB_OUTPUT
             echo "docker_vscode_extension_version=$EXT_VERSION" >> $GITHUB_OUTPUT
             echo "release_version=${{ github.event.inputs.release_version }}" >> $GITHUB_OUTPUT
           else
             echo "Checking for newer upstream versions..."
+            sudo apt-get update && sudo apt-get install -y jq
             
-            # Check docker-language-server
-            LS_UPSTREAM=$(curl -s https://api.github.com/repos/docker/docker-language-server/releases/latest | jq -r .tag_name)
             EXT_UPSTREAM=$(curl -s https://api.github.com/repos/docker/vscode-extension/releases/latest | jq -r .tag_name)
+            LS_UPSTREAM=$(curl -s "https://raw.githubusercontent.com/docker/vscode-extension/refs/tags/$EXT_UPSTREAM/build/downloader.mjs" | sed -n "s/.*const version = '\(.*\)';/\1/p")
             OWN_VERSION=$(curl -sL https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name || echo "v0.0.0")
             
             echo "Language Server upstream version: $LS_UPSTREAM"
