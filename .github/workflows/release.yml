@@ -33,7 +33,7 @@ jobs:
             echo "Building specified versions"
             echo "should_build=true" >> $GITHUB_OUTPUT
             EXT_VERSION="${{ github.event.inputs.extension_version }}"
-            LS_VERSION=$(curl -s "https://raw.githubusercontent.com/docker/vscode-extension/refs/tags/$EXT_VERSION/build/downloader.mjs" | sed -n "s/.*const version = '\(.*\)';/\1/p")
+            LS_VERSION=v$(curl -s "https://raw.githubusercontent.com/docker/vscode-extension/refs/tags/$EXT_VERSION/build/downloader.mjs" | sed -n "s/.*const version = '\(.*\)';/\1/p")
             echo "docker_language_server_version=$LS_VERSION" >> $GITHUB_OUTPUT
             echo "docker_vscode_extension_version=$EXT_VERSION" >> $GITHUB_OUTPUT
             echo "release_version=${{ github.event.inputs.release_version }}" >> $GITHUB_OUTPUT
@@ -42,7 +42,7 @@ jobs:
             sudo apt-get update && sudo apt-get install -y jq
             
             EXT_UPSTREAM=$(curl -s https://api.github.com/repos/docker/vscode-extension/releases/latest | jq -r .tag_name)
-            LS_UPSTREAM=$(curl -s "https://raw.githubusercontent.com/docker/vscode-extension/refs/tags/$EXT_UPSTREAM/build/downloader.mjs" | sed -n "s/.*const version = '\(.*\)';/\1/p")
+            LS_UPSTREAM=v$(curl -s "https://raw.githubusercontent.com/docker/vscode-extension/refs/tags/$EXT_UPSTREAM/build/downloader.mjs" | sed -n "s/.*const version = '\(.*\)';/\1/p")
             OWN_VERSION=$(curl -sL https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name || echo "v0.0.0")
             
             echo "Language Server upstream version: $LS_UPSTREAM"
