@@ -87,6 +87,18 @@ jobs:
           repository: docker/docker-language-server
           ref: ${{ needs.determine_version.outputs.docker_language_server_version }}
 
+      - name: Checkout patches
+        uses: actions/checkout@v4
+        with:
+          path: patches-repo
+
+      - name: Apply panicwrap patch for loong64
+        run: |
+          if [ "${{ matrix.arch }}" = "loong64" ]; then
+            go mod vendor
+            patch -p1 -d vendor/github.com/bugsnag/panicwrap < patches-repo/patches/panicwrap-dup2-loong64.patch
+          fi
+
       - name: Build for ${{ matrix.os }}-${{ matrix.arch }}
         run: make build
         env:
@@ -95,12 +107,12 @@ jobs:
 
       - name: Rename the binary to include the version number
         run: |
-          mv docker-language-server-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} docker-language-server-${{ matrix.os }}-${{ matrix.arch }}-v${{ steps.set-variables.outputs.VERSION }}${{ matrix.ext }}
+          mv docker-language-server-${{ matrix.os }}-${{ matrix.arch }} docker-language-server-${{ matrix.os }}-${{ matrix.arch }}-${{ needs.determine_version.outputs.docker_language_server_version }}
 
       - uses: actions/upload-artifact@v4
         with:
-          name: docker-language-server-${{ matrix.os }}-${{ matrix.arch }}-v${{ needs.determine_version.outputs.docker_language_server_version }}${{ matrix.ext }}
-          path: docker-language-server-${{ matrix.os }}-${{ matrix.arch }}-v${{ needs.determine_version.outputs.docker_language_server_version }}${{ matrix.ext }}
+          name: docker-language-server-${{ matrix.os }}-${{ matrix.arch }}-${{ needs.determine_version.outputs.docker_language_server_version }}${{ matrix.ext }}
+          path: docker-language-server-${{ matrix.os }}-${{ matrix.arch }}-${{ needs.determine_version.outputs.docker_language_server_version }}${{ matrix.ext }}
           if-no-files-found: error
 
 
