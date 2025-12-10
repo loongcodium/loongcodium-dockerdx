@@ -140,6 +140,18 @@ jobs:
         with:
           node-version: '22.x'
 
+      - name: Patch metadata
+        run: |
+          cat package.json | \
+          jq '.displayName=(.displayName) + " (loong64)"' | \
+          jq '.description=(.description) + " (This version is for LoongArch64 only)"' | \
+          jq '.version=("${{ needs.determine_version.outputs.release_version }}"|ltrimstr("v"))' | \
+          jq '.publisher="loong-vsx"' | \
+          jq '.homepage="https://github.com/loongcodium/dockerdx-loong64"' | \
+          jq '.repository.url="https://github.com/loongcodium/dockerdx-loong64.git"' | \
+          jq '.bugs.url="https://github.com/loongcodium/dockerdx-loong64/issues"' \
+          > tmp.json && mv -v tmp.json package.json
+
       - run: |
           NODE_OS=${{ matrix.nodeos }} NODE_ARCH=${{ matrix.nodearch }} npm install
         
@@ -159,11 +171,6 @@ jobs:
         run: |
           npm install -g @vscode/vsce
           vsce package -o docker-vscode-extension-${{ matrix.os }}-${{ matrix.nodearch }}-$VERSION-$SHA.vsix
-
-      - uses: astral-sh/setup-uv@v6
-      - name: Patch vsix
-        run: |
-          uv run "https://raw.githubusercontent.com/loongcodium/loongcodium-scripts/refs/heads/main/scripts/patch_vsix.py" -t ${{ matrix.os }}-${{ matrix.nodearch }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -186,7 +193,10 @@ jobs:
           git tag ${{ needs.determine_version.outputs.release_version }}
           git push origin ${{ needs.determine_version.outputs.release_version }}
       - uses: actions/download-artifact@v5
+        with:
+          merge-multiple: true
       - run: ls -al
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
@@ -195,4 +205,9 @@ jobs:
             ./**/*.vsix
             ./**/*docker-language-server*
 
-
+      - name: Install ovsx
+        run: npm install --global ovsx
+      - name: Publish extension
+        run: ovsx publish ./*.vsix
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
